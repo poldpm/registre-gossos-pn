@@ -9,12 +9,16 @@ const CONFIG = {
 
 // ---------- Claus d'emmagatzematge local ----------
 const K_NOM = 'gp_nom';
+const K_DATA = 'gp_data';     // data (YYYY-MM-DD) de l'última selecció de zona
 const K_QUEUE = 'gp_queue';   // registres pendents de sincronitzar
 const K_LOG = 'gp_log';       // historial local (per comptadors)
 
 // ---------- Utilitats d'emmagatzematge ----------
 function getNom() { return localStorage.getItem(K_NOM) || ''; }
-function setNom(v) { localStorage.setItem(K_NOM, v); }
+// En desar la zona hi guardem també la data d'avui, per saber si la
+// selecció és d'avui o d'un dia anterior (avuiISO està definida a sota).
+function setNom(v) { localStorage.setItem(K_NOM, v); localStorage.setItem(K_DATA, avuiISO()); }
+function getDataSeleccio() { return localStorage.getItem(K_DATA) || ''; }
 
 function getQueue() {
   try { return JSON.parse(localStorage.getItem(K_QUEUE)) || []; }
@@ -217,7 +221,10 @@ window.addEventListener('offline', updateConnexioIndicator);
 function init() {
   updateConnexioIndicator();
 
-  if (getNom()) {
+  // Cada jornada (dia nou) tornem a demanar la zona: només saltem a la
+  // pantalla principal si la selecció és d'AVUI. Si és d'un dia anterior,
+  // mostrem la selecció de zona perquè es triï el sector del dia.
+  if (getNom() && getDataSeleccio() === avuiISO()) {
     document.getElementById('infoNom').textContent = '📍 ' + getNom();
     showScreen('main');
   } else {
