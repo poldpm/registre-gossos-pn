@@ -83,6 +83,58 @@ function updateCounters() {
   badge.textContent = pendents > 0 ? `⏳ ${pendents} pendents` : '✓ Tot sincronitzat';
   badge.classList.toggle('zero', pendents === 0);
   badgeConfig.textContent = pendents;
+  comprovarPendentsAntics();
+}
+
+// ---------- Avís de registres encallats ----------
+// Els registres pendents encara NO són al full: viuen només a la tablet.
+// Si en queden d'un dia anterior, es podrien perdre si algú reinstal·la
+// l'app o es fa malbé la tablet. Ho avisem de manera ben visible.
+function comprovarPendentsAntics() {
+  const barra = document.getElementById('avisPendents');
+  const queue = getQueue();
+
+  let mesAntic = null;
+  queue.forEach(function (r) {
+    const t = Date.parse(r && r.timestamp);
+    if (!isNaN(t) && (mesAntic === null || t < mesAntic)) mesAntic = t;
+  });
+
+  let diaAntic = null;
+  if (mesAntic !== null) {
+    const d = new Date(mesAntic);
+    diaAntic = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  const encallat = (diaAntic !== null && diaAntic < avuiISO());
+  if (!encallat) {
+    if (barra) barra.remove();
+    return;
+  }
+
+  const dies = Math.max(1, Math.round((Date.now() - mesAntic) / 86400000));
+  const text = '⚠️ Hi ha ' + queue.length + ' registre' + (queue.length === 1 ? '' : 's') +
+    ' sense enviar des de fa ' + dies + (dies === 1 ? ' dia' : ' dies') +
+    '. Ves on hi hagi cobertura i obre l\'app. NO esborris ni reinstal·lis l\'app.';
+
+  if (barra) {
+    const p = barra.querySelector('span');
+    if (p) p.textContent = text;
+    return;
+  }
+
+  const nova = document.createElement('div');
+  nova.id = 'avisPendents';
+  nova.setAttribute('role', 'alert');
+  nova.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:1500;' +
+    'background:#c62828;color:#fff;padding:12px 16px;' +
+    'padding-bottom:max(12px,env(safe-area-inset-bottom));' +
+    'font-size:0.95rem;line-height:1.35;text-align:center;' +
+    'box-shadow:0 -3px 12px rgba(0,0,0,0.35);';
+  const span = document.createElement('span');
+  span.textContent = text;
+  nova.appendChild(span);
+  document.body.appendChild(nova);
 }
 
 function updateConnexioIndicator() {
